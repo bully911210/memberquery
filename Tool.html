@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client Data Search</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f0f8ff;
+            color: navy;
+        }
+        .search-container {
+            margin-bottom: 20px;
+        }
+        label {
+            margin-right: 10px;
+        }
+        input[type="text"] {
+            margin-right: 20px;
+            padding: 5px;
+        }
+        button {
+            background-color: navy;
+            color: white;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: darkblue;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        #error-message {
+            color: red;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>SIG Solutions' Membership Query Tool</h1>
+    <div class="search-container">
+        <label for="email">Email:</label>
+        <input type="text" id="email" placeholder="Enter email">
+        <label for="id-number">ID Number:</label>
+        <input type="text" id="id-number" placeholder="Enter ID number">
+        <label for="phone-number">Phone Number:</label>
+        <input type="text" id="phone-number" placeholder="Enter phone number">
+        <button id="search-button">Search</button>
+    </div>
+    <div id="error-message"></div>
+    <table id="results-table" style="display: none;">
+        <thead>
+            <tr>
+                <th>Agent Name</th>
+                <th>Client Name</th>
+                <th>Client Email</th>
+                <th>Client Phone Number</th>
+                <th>Monthly Premium</th>
+                <th>Annual Premium</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+    <script>
+        const scriptUrl = "https://script.google.com/macros/s/AKfycbyc75gX72ZD8nwoCtzY14wT6mbSDN_wDW-3055pVLGhFTGx0-KPP_boiQWXG_ExZXBIjg/exec"; // Replace with your Web App URL
+
+        document.getElementById("search-button").addEventListener("click", async () => {
+            const email = document.getElementById("email").value.trim();
+            const idNumber = document.getElementById("id-number").value.trim();
+            const phoneNumber = document.getElementById("phone-number").value.trim();
+
+            const errorMessage = document.getElementById("error-message");
+            const resultsTable = document.getElementById("results-table");
+            const resultsBody = resultsTable.querySelector("tbody");
+
+            errorMessage.textContent = "";
+            resultsTable.style.display = "none";
+            resultsBody.innerHTML = "";
+
+            // Ensure at least one parameter is provided
+            if (!email && !idNumber && !phoneNumber) {
+                errorMessage.textContent = "Please provide at least one search parameter.";
+                return;
+            }
+
+            try {
+                // Construct the URL with query parameters
+                const queryParams = new URLSearchParams({
+                    email: email || "",
+                    id: idNumber || "",
+                    phone: phoneNumber || "",
+                });
+
+                // Fetch the data from the Apps Script
+                const response = await fetch(`${scriptUrl}?${queryParams.toString()}`);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                // Handle no results
+                if (data.length === 0) {
+                    errorMessage.textContent = "No results found.";
+                } else {
+                    // Populate the table with results
+                    resultsTable.style.display = "table";
+                    data.forEach(row => {
+                        const tr = document.createElement("tr");
+                        tr.innerHTML = `
+                            <td>${row["Agent Name"] || "N/A"}</td>
+                            <td>${row["Client Details: Client Name"] || "N/A"}</td>
+                            <td>${row["Client Details: Client Email"] || "N/A"}</td>
+                            <td>${row["Client Details: Client Phone Number"] || "N/A"}</td>
+                            <td>${row["Monthly Premium"] || "N/A"}</td>
+                            <td>${row["Annual Premium"] || "N/A"}</td>
+                        `;
+                        resultsBody.appendChild(tr);
+                    });
+                }
+            } catch (error) {
+                errorMessage.textContent = `Error: ${error.message}`;
+                console.error(error);
+            }
+        });
+    </script>
+</body>
+</html>
